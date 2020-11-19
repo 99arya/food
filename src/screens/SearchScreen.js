@@ -1,53 +1,39 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import SearchBar from "../components/SearchBar";
-import yelp from "../api/yelp";
+import useResults from "../hooks/useResults";
+import ResultList from "../components/ResultList";
 
-const SearchScreen = () => {
+const SearchScreen = ({}) => {
   const [term, setTerm] = useState("");
+  const [SearchApi, loader, error, results] = useResults();
 
-  const [loader, setLoader] = useState(null);
-  const [error, setError] = useState("");
-
-  const [results, setResults] = useState([]);
-
-  const SearchApi = async () => {
-    setLoader(true);
-    setResults([]);
-    try {
-      const response = await yelp.get("/search", {
-        params: { limit: 50, term, location: "san jose" },
-      });
-      console.log(response);
-      setResults(response.data.businesses);
-    } catch (e) {
-      console.log(e);
-      setLoader(false);
-      setError("Something went wrong. Please try again later.");
-    } finally {
-      setLoader(false);
-    }
+  const filterResultsByPrice = (price) => {
+    return results.filter((result) => {
+      return result.price == price;
+    });
   };
 
   return (
-    <View>
-      <SearchBar term={term} onTermChange={setTerm} onTermSubmit={SearchApi} />
-      <Text size={30}>Search Screen</Text>
+    <>
+      <SearchBar term={term} onTermChange={setTerm} onTermSubmit={() => SearchApi(term)} />
       {loader ? (
         <Text>Please Wait...</Text>
       ) : error ? (
         <Text>{error}</Text>
       ) : results.length > 0 ? (
         <View style={styles.list}>
-          <Text>We have found {results.length} results</Text>
-          {results.map((item, index) => {
-            return <Text key={index}> {item.name}</Text>;
-          })}
+          {/* <Text>We have found {results.length} results</Text> */}
+          <ScrollView>
+            <ResultList results={filterResultsByPrice("$")} title="Cost Effective" />
+            <ResultList results={filterResultsByPrice("$$")} title="Bit Costly" />
+            <ResultList results={filterResultsByPrice("$$$")} title="Big Spender" />
+          </ScrollView>
         </View>
       ) : results.length == 0 ? (
         <Text>No results found.</Text>
       ) : null}
-    </View>
+    </>
   );
 };
 
